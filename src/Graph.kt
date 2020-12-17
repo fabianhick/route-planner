@@ -1,9 +1,7 @@
-import com.sun.source.tree.Tree
 import java.io.File
 import java.lang.IllegalStateException
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
 
@@ -34,33 +32,20 @@ class Graph (val fileName: String) {
             return Position( latitude*PI/180.0, longitude* PI/180.0)
         }
     }
-    data class Node(var offset: Int, val position: Position, val id: Int, var distance: Double = Double.POSITIVE_INFINITY) : Comparable<Node> {
-        override public fun compareTo(other: Node) : Int {
+    //data class Node(var offset: Int, val position: Position, val id: Int, var distance: Double = Double.POSITIVE_INFINITY) : Comparable<Node> {
+    data class Node(var offset: Int, val position: Position, val id: Int) {
+    /*    override public fun compareTo(other: Node) : Int {
             if(this.distance == other.distance) {
                 return this.id.compareTo(other.id)
             } else {
                 return this.distance.compareTo(other.distance)
             }
-        }
-        /*fun getEdges(edges: ArrayList<Edge>) : ArrayList<Edge> {
-            var set: ArrayList<Edge> = ArrayList()
-            var index = offset
-            if(index > edges.size -1)
-                return set
-            while(edges[index].src == id) {
-                set.add(edges[index])
-                index++
-                if(index > edges.size-1)
-                    break
-            }
-            return set
         }*/
     }
 
     data class Edge(val src: Int, val target: Int, val weight: Int) {}
     var nodes: ArrayList<Node> = ArrayList()
     var edges: ArrayList<Edge> = ArrayList()
-   // var shortestPath: ArrayList<Int> = ArrayList()
 
     var numNodes = 0
         get() = field
@@ -114,95 +99,31 @@ class Graph (val fileName: String) {
         println("Nodes: $numNodes; Loaded: ${nodes.size}")
         println("Edges: $numEdges; Loaded: ${edges.size}")
         println("Entries: $count")
-        System.gc()
+       // System.gc()
     }
 
     fun distanceTo(source: Int, destination: Int) {
         TODO()
     }
-
-    /*fun oneToAll(start: Int = 0) : ArrayList<Int> {
-        val finished: MutableSet<Node> = mutableSetOf() // a subset of vertices, for which we know the true distance
-
-        val delta = nodes.map { it to Int.MAX_VALUE }.toMap().toMutableMap()
-        val previous: MutableMap<Node, Node?> = nodes.map{it to null}.toMap().toMutableMap()
-        delta[nodes[start]] = 0
-
-
-        while (finished != nodes.toSet()) {
-            val node: Node = delta
-                    .filter { !finished.contains(it.key) }
-                    .minBy { it.value }!!
-                    .key
-
-            node.getEdges(edges).forEach { edge ->
-               // println(edge.toString())
-                val newPath = delta.getValue(node) + edge.weight
-                val neighbor = nodes[edge.target];
-                if (newPath < delta.getValue(neighbor)) {
-                    delta[neighbor] = newPath
-                    previous[neighbor] = node
-                }
-            }
-
-            finished.add(node)
-        }
-        var distance: ArrayList<Int> = ArrayList()
-        nodes.forEach() {
-            distance.add(delta.get(it) ?: Int.MAX_VALUE)
-        }
-        //return previous.toMap()
-        return distance;
-    }
-
-fun oneToAll(start: Int = 0) : Array<Double> {
-        val queue: DijkstraQueue<Int> = DijkstraQueue()
-        val distance: Array<Double> = Array(numNodes) { i -> Double.POSITIVE_INFINITY }
-        val previous: IntArray = IntArray(numNodes) { i -> -1}
-
-        distance[start] = 0.0
-        distance.forEachIndexed {
-            id, distance ->
-            queue.addWithPriority(id, distance)
-        }
-
-        while(!queue.isEmpty()) {
-            val n = queue.getNextItem()
-            var index: Int = nodes[n].offset
-            while(edges[index].src == n) {
-                val it = edges[index]
-                val alt: Double = distance[it.src] + it.weight
-                if (alt < distance[it.target]) {
-                    distance[it.target] = alt
-                    previous[it.target] = it.src
-                    queue.decreasePriority(item = it.target, priority = alt)
-                }
-                index++
-                if(index > edges.size -1)
-                    break
-            }
-        }
-
-        return distance
-
-    }
-*/
-   /* class NodeComparator : Comparator<Node> {
-        override fun compare(o1: Node, o2: Node): Int {
-            if(o1.distance == o2.distance) {
-                return o1.id.compareTo(o2.id)
-            } else {
-                return o1.distance.compareTo(o2.distance)
-            }
-        }
-    }*/
-
+// shared data class for comparator and dijkstra
+data class distance(var data: Array<Double>)
     fun oneToAll(start: Int = 0) : Array<Double> {
-        val queue: TreeSet<Node> = TreeSet()
-        val distance: Array<Double> = Array(numNodes) { i -> Double.POSITIVE_INFINITY }
+
+        class NodeComparator(ref : distance) : Comparator<Node> {
+            var ref = ref
+            override fun compare(o1: Node, o2: Node): Int {
+                if(ref.data[o1.id] == ref.data[o2.id]) {
+                    return o1.id.compareTo(o2.id)
+                } else {
+                    return ref.data[o1.id].compareTo(ref.data[o2.id])
+                }
+            }
+        }
+
+        var distance: distance = distance(Array(numNodes) { i -> Double.POSITIVE_INFINITY })
+        val queue: TreeSet<Node> = TreeSet(NodeComparator(distance))
         val previous: IntArray = IntArray(numNodes) { i -> -1}
-        nodes[start].distance = 0.0
-        distance[start] = 0.0
+        distance.data[start] = 0.0
         //nodes.forEach({
         //    queue.add(it)
         //})
@@ -217,13 +138,13 @@ fun oneToAll(start: Int = 0) : Array<Double> {
             while(edges[index].src == u.id) {
                 val edge = edges[index]
                 val v = nodes[edge.target]
-                val alt: Double = u.distance + edge.weight
-                if (alt < distance[v.id]) {
-                    distance[v.id] = alt
+                val alt: Double = distance.data[u.id] + edge.weight
+                if (alt < distance.data[v.id]) {
+                    distance.data[v.id] = alt
 
                     previous[v.id] = u.id
                     queue.remove(v)
-                    v.distance = alt
+                 //   v.distance = alt
                     queue.add(v)
                 }
                 index++
@@ -234,12 +155,7 @@ fun oneToAll(start: Int = 0) : Array<Double> {
 
             }
         }
-        var time = measureTimeMillis {
-            nodes.forEach { it.distance = Double.POSITIVE_INFINITY }
-
-        }
-        println("Reset took ${time/1000} seconds.")
-        return distance
+        return distance.data
 
     }
 
@@ -265,7 +181,7 @@ fun oneToAll(start: Int = 0) : Array<Double> {
                 currentNode = challengeNodes[0].toInt()
                 println("Calculating dijkstra for node $currentNode...")
                 result = null
-                System.gc()
+                //System.gc()
                 var time = measureTimeMillis {
                     result = oneToAll(challengeNodes[0].toInt())
                 }
