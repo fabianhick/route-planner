@@ -105,9 +105,9 @@ class Graph (val fileName: String) {
     fun distanceTo(source: Int, destination: Int) {
         TODO()
     }
-// shared data class for comparator and dijkstra
-data class distance(var data: Array<Double>)
-    fun oneToAll(start: Int = 0) : Array<Double> {
+    // shared data class for comparator and dijkstra
+    data class distance(var data: Array<Double>)
+    fun oneToAll(start: Int = 0) : DijkstraPath {
 
         class NodeComparator(ref : distance) : Comparator<Node> {
             var ref = ref
@@ -124,13 +124,14 @@ data class distance(var data: Array<Double>)
         val queue: TreeSet<Node> = TreeSet(NodeComparator(distance))
         val previous: IntArray = IntArray(numNodes) { i -> -1}
         distance.data[start] = 0.0
-        //nodes.forEach({
-        //    queue.add(it)
-        //})
+
         queue.add(nodes[start])
+
         while(queue.isNotEmpty()) {
             val u = queue.pollFirst()
             var index: Int = u.offset
+
+            // Continue if node doesn't have any edges
             if(index == Int.MIN_VALUE)
                 continue
             //println(edges[index].src == u.id)
@@ -155,10 +156,25 @@ data class distance(var data: Array<Double>)
 
             }
         }
-        return distance.data
-
+        //return distance.data
+        return DijkstraPath(distance.data, previous, nodes)
     }
-
+    data class DijkstraPath(val distance: Array<Double>, val way: IntArray, val nodes: ArrayList<Node>) {
+        fun getPath(node: Int) : ArrayList<Node> {
+            val queue : Deque<Node> = LinkedList()
+            fun iterate(id: Int) {
+                if(id == -1) return
+                queue.addFirst(nodes[id])
+                iterate(way[id])
+            }
+            iterate(node)
+            val path: ArrayList<Node> = ArrayList()
+            queue.iterator().forEach {
+                path.add(it)
+            }
+            return path
+        }
+    }
     fun getNode(id: Int = 0): Node {
         return nodes.get(id).copy()
     }
@@ -172,11 +188,11 @@ data class distance(var data: Array<Double>)
 
 
     fun fileChallenge(input: String, output: String) {
-        var result: Array<Double>? = null
+        var result: DijkstraPath? = null
         var currentNode: Int = -1;
 
         File(input).forEachLine {
-            val challengeNodes = it.split(" ")
+            val challengeNodes = it.trim().split(" ")
             if(challengeNodes[0].toInt() != currentNode) {
                 currentNode = challengeNodes[0].toInt()
                 println("Calculating dijkstra for node $currentNode...")
@@ -186,13 +202,12 @@ data class distance(var data: Array<Double>)
                     result = oneToAll(challengeNodes[0].toInt())
                 }
                 println("Finished calculating dijkstra for node #$currentNode after ${time/1000} seconds.")
-            } else {
-                val value = result!!.get(challengeNodes[1].toInt())
-                var text = value.toString().removeSuffix(".0")
-                if(value == Double.POSITIVE_INFINITY)
-                    text = "-1"
-                File(output).appendText(text + "\n")
             }
+            val value = result!!.distance.get(challengeNodes[1].toInt())
+            var text = value.toString().removeSuffix(".0")
+            if(value == Double.POSITIVE_INFINITY)
+                text = "-1"
+            File(output).appendText(text + "\n")
         }
     }
 }

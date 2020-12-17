@@ -2,12 +2,10 @@ import Global.graph
 import java.lang.IllegalArgumentException
 import kotlin.Exception
 import kotlin.system.measureTimeMillis
-
 /*
  * Copyright (c) 2020.
  * Fabian Hick
  */
-
 var time: Long = 0
 object Global {
         lateinit var graph: Graph
@@ -67,11 +65,12 @@ fun nodePosition() {
 fun oneToAll() {
     print("From which node would you like to know the distance? ")
     var source = readLine()?.toIntOrNull() ?: 0
-    var distance: Array<Double>? = null
+    var path: Graph.DijkstraPath? = null
     println("Calculating one-to-all dijkstra... please wait.")
     var time = measureTimeMillis {
-        distance = Global.graph.oneToAll(source)
+        path = Global.graph.oneToAll(source)
     }
+    val distance = path!!.distance
     println("Calculated one-to-all dijkstra in ${time/1000} seconds.")
     println("Calculated ${distance!!.size} entries of ${Global.graph.numNodes}")
     while(true) {
@@ -85,6 +84,8 @@ fun oneToAll() {
             break
 
         println("Your distance is: ${distance!![target]}")
+        println("Your path: ${path!!.getPath(target)}")
+
         println("To return to the main menu, enter -1.")
     }
 }
