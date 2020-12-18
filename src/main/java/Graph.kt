@@ -40,8 +40,8 @@ class Graph (val fileName: String) {
     }
     data class Node(var offset: Int, val position: Position, val id: Int)
     data class Edge(val src: Int, val target: Int, val weight: Int) {}
-    var nodes: ArrayList<Node> = ArrayList()
-    var edges: ArrayList<Edge> = ArrayList()
+    var nodes: Array<Node> = Array(1) {Node(0, Position(0.0,0.0),0)} ;
+    var edges: Array<Edge> = Array(1) {Edge(0,0,0)};
 
     var numNodes = 0
         get() = field
@@ -60,8 +60,12 @@ class Graph (val fileName: String) {
                 //println(it.removePrefix("# ").replace(" ", "").split(":"))
             } else if (numNodes == 0) {
                 numNodes = it.toIntOrNull() ?: 0
+                val temp = Node(0, Position(.0,.0),0)
+                nodes = Array(numNodes) { temp }
             } else if (numEdges == 0) {
                 numEdges = it.toIntOrNull() ?: 0
+                val temp = Edge(0,0,0)
+                edges = Array(numEdges) { temp }
             } else {
                 //if(count < 5)
                 //    println(it)
@@ -72,7 +76,7 @@ class Graph (val fileName: String) {
                 }
                 if (count < numNodes) {
                     with(it.split(" ")) {
-                        nodes.add(Node(Int.MIN_VALUE, Position(latitude = get(2).toDouble(), longitude = get(3).toDouble()), id = count))
+                        nodes!![count] = Node(Int.MIN_VALUE, Position(latitude = get(2).toDouble(), longitude = get(3).toDouble()), id = count)
                     }
                 } else {
                     with(it.split(" ")) {
@@ -81,7 +85,7 @@ class Graph (val fileName: String) {
                         //if(weight < 0)
                         //    weight = Int.MAX_VALUE
 
-                        edges.add(Edge(source, target = get(1).toInt(), weight = get(2).toInt()))
+                        edges[count-numNodes] = Edge(source, target = get(1).toInt(), weight = get(2).toInt())
                         if (nodes.get(source).offset == Int.MIN_VALUE)
                             nodes.get(source).offset = count - numNodes;
                     }
@@ -205,7 +209,7 @@ class Graph (val fileName: String) {
         //return distance.data
         return DijkstraPath(distance.data, previous, nodes)
     }
-    data class DijkstraPath(val distance: Array<Double>, val way: IntArray, val nodes: ArrayList<Node>) {
+    data class DijkstraPath(val distance: Array<Double>, val way: IntArray, val nodes: Array<Node>) {
         fun getPathAsArrayBackwards (node: Int) : LinkedList<Array<Double>> {
             val result: LinkedList<Array<Double>> = LinkedList()
             var id = node
@@ -239,13 +243,7 @@ class Graph (val fileName: String) {
                 if(id == -1)
                     break;
             }
-           /* fun  iterate(id: Int) {
-                if(id == -1) return
-                iterate(way[id])
-                queue.addFirst(nodes[id])
-            }
-            iterate(node)
-            */
+
             val path: ArrayList<Node> = ArrayList()
             queue.iterator().forEach {
                 path.add(it)
@@ -262,7 +260,7 @@ class Graph (val fileName: String) {
      * Returns the nearest node according to the passed position
      */
     fun findNearestNode(target: Position): Node {
-
+        var nodes: List<Node> = nodes.toList()
         return nodes.parallelStream().min(Comparator.comparing(Function<Node, Double> { a: Node -> a.position.distance(target) })).unwrap()!!
         //return nodes.minBy { it.position.distance(target) } ?: throw IllegalStateException("Graph shouldn't be empty") //TODO parallel
     }
