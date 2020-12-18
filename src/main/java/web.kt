@@ -81,7 +81,7 @@ class Web (graph: Graph) : Runnable {
                         println("Received request, calculating nearest nodes...")
                         val point = Graph.Position(call.parameters["lat"]!!.toDouble(), call.parameters["long"]!!.toDouble())
                         val node = Global.graph.findNearestNode(point)
-                        call.respondText(Gson().toJson(node.position).toString())
+                        call.respondText(Gson().toJson(node).toString())
                     }
                     println("Calculating request took ${time/1000} s.")
                 }
