@@ -1,6 +1,12 @@
+/*
+ * Copyright (c) 2020.
+ * Fabian Hick
+ */
+
 import java.io.File
 import java.lang.IllegalStateException
 import java.util.*
+import java.util.function.Function
 import kotlin.collections.ArrayList
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
@@ -29,20 +35,10 @@ class Graph (val fileName: String) {
         fun radian() : Position {
             if(longitude < 2*PI)
                 return this
-            return Position( latitude*PI/180.0, longitude* PI/180.0)
+            return Position(latitude * PI / 180.0, longitude * PI / 180.0)
         }
     }
-    //data class Node(var offset: Int, val position: Position, val id: Int, var distance: Double = Double.POSITIVE_INFINITY) : Comparable<Node> {
-    data class Node(var offset: Int, val position: Position, val id: Int) {
-    /*    override public fun compareTo(other: Node) : Int {
-            if(this.distance == other.distance) {
-                return this.id.compareTo(other.id)
-            } else {
-                return this.distance.compareTo(other.distance)
-            }
-        }*/
-    }
-
+    data class Node(var offset: Int, val position: Position, val id: Int)
     data class Edge(val src: Int, val target: Int, val weight: Int) {}
     var nodes: ArrayList<Node> = ArrayList()
     var edges: ArrayList<Edge> = ArrayList()
@@ -102,9 +98,59 @@ class Graph (val fileName: String) {
        // System.gc()
     }
 
-    fun distanceTo(source: Int, destination: Int) {
-        TODO()
+    fun distanceTo(start: Int = 0, target: Int = 0) : DijkstraPath {
+
+        class NodeComparator(ref : distance) : Comparator<Node> {
+            var ref = ref
+            override fun compare(o1: Node, o2: Node): Int {
+                if(ref.data[o1.id] == ref.data[o2.id]) {
+                    return o1.id.compareTo(o2.id)
+                } else {
+                    return ref.data[o1.id].compareTo(ref.data[o2.id])
+                }
+            }
+        }
+        var distance: distance = distance(Array(numNodes) { i -> Double.POSITIVE_INFINITY })
+        val queue: TreeSet<Node> = TreeSet(NodeComparator(distance))
+        val previous: IntArray = IntArray(numNodes) { i -> -1}
+        distance.data[start] = 0.0
+
+        queue.add(nodes[start])
+        while(queue.isNotEmpty()) {
+            val u = queue.pollFirst()
+            if(u == nodes[target]) {
+                break;
+            }
+            var index: Int = u.offset
+
+            // Continue if node doesn't have any edges
+            if(index == Int.MIN_VALUE)
+                continue
+            //println(edges[index].src == u.id)
+            //println("src: ${edges[index].src}; id: ${u.id}")
+            while(edges[index].src == u.id) {
+                val edge = edges[index]
+                val v = nodes[edge.target]
+                val alt: Double = distance.data[u.id] + edge.weight
+                if (alt < distance.data[v.id]) {
+                    distance.data[v.id] = alt
+
+                    previous[v.id] = u.id
+                    queue.remove(v)
+                    //   v.distance = alt
+                    queue.add(v)
+                }
+                index++
+                if(index > edges.size -1) {
+                    // TODO: println("[!!!!!] Skipped, due to index overlap!")
+                    break
+                }
+            }
+        }
+        //return distance.data
+        return DijkstraPath(distance.data, previous, nodes)
     }
+
     // shared data class for comparator and dijkstra
     data class distance(var data: Array<Double>)
     fun oneToAll(start: Int = 0) : DijkstraPath {
@@ -160,14 +206,46 @@ class Graph (val fileName: String) {
         return DijkstraPath(distance.data, previous, nodes)
     }
     data class DijkstraPath(val distance: Array<Double>, val way: IntArray, val nodes: ArrayList<Node>) {
+        fun getPathAsArrayBackwards (node: Int) : LinkedList<Array<Double>> {
+            val result: LinkedList<Array<Double>> = LinkedList()
+            var id = node
+            while(id != -1) {
+                val s: Array<Double> = Array(2 ) { nodes[id].position.latitude}
+                s[1] = nodes[id].position.longitude
+                result.add(s)
+                id = way[id]
+            }
+            return result
+        }
+
+        fun getPathBackwards(node: Int) : LinkedList<Node> {
+            val result: LinkedList<Node> = LinkedList()
+            var id = node
+            while(true) {
+                result.add(nodes[id])
+                id = way[id]
+                if(id == -1)
+                    break;
+            }
+            return result
+        }
+
         fun getPath(node: Int) : ArrayList<Node> {
             val queue : Deque<Node> = LinkedList()
-            fun iterate(id: Int) {
-                if(id == -1) return
+            var id = node;
+            while(true) {
                 queue.addFirst(nodes[id])
+                id = way[id]
+                if(id == -1)
+                    break;
+            }
+           /* fun  iterate(id: Int) {
+                if(id == -1) return
                 iterate(way[id])
+                queue.addFirst(nodes[id])
             }
             iterate(node)
+            */
             val path: ArrayList<Node> = ArrayList()
             queue.iterator().forEach {
                 path.add(it)
@@ -178,12 +256,15 @@ class Graph (val fileName: String) {
     fun getNode(id: Int = 0): Node {
         return nodes.get(id).copy()
     }
+    fun <T> Optional<T>.unwrap(): T? = orElse(null)
 
     /**
      * Returns the nearest node according to the passed position
      */
     fun findNearestNode(target: Position): Node {
-        return nodes.minBy { it.position.distance(target) } ?: throw IllegalStateException("Graph shouldn't be empty") //TODO parallel
+
+        return nodes.parallelStream().min(Comparator.comparing(Function<Node, Double> { a: Node -> a.position.distance(target) })).unwrap()!!
+        //return nodes.minBy { it.position.distance(target) } ?: throw IllegalStateException("Graph shouldn't be empty") //TODO parallel
     }
 
 
@@ -210,6 +291,31 @@ class Graph (val fileName: String) {
             File(output).appendText(text + "\n")
         }
     }
+
+    fun fileChallengeOptimized(input: String, output: String) {
+        var result: DijkstraPath? = null
+        var challengeNodes: List<String> = ArrayList<String>()
+        var counter: Int = 0
+        var g_time: Long = 0
+        File(input).forEachLine {
+            challengeNodes = it.trim().split(" ")
+            val currentNode = challengeNodes[0].toInt()
+            println("Calculating dijkstra for way from $currentNode to ${challengeNodes[1].toInt()}...")
+            var time = measureTimeMillis {
+                result = distanceTo(challengeNodes[0].toInt(), challengeNodes[1].toInt())
+            }
+            val value = result!!.distance.get(challengeNodes[1].toInt())
+            var text = value.toString().removeSuffix(".0")
+            if(value == Double.POSITIVE_INFINITY)
+                text = "-1"
+            File(output).appendText(text + "\n")
+            println("Finished calculating dijkstra for node #$currentNode after ${time/1000} seconds.")
+            counter++;
+            g_time += time
+        }
+        println("Finished calculating challenge. Average time for each line: ${(g_time/1000)/counter}s")
+    }
+
 }
 /*
 class DijkstraQueue<T>()  {

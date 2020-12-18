@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+   integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+   crossorigin=""/>
+ <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+   integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+   crossorigin=""></script>
+
+</head>
+<body>
+ <div id="map" style="height: 900px"></div>
+<script>
+var mymap = L.map('map').setView([48.745, 9.105], 15);
+
+	L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+		//maxZoom: 18,
+		attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+			'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+		id: 'mapbox/streets-v11',
+		tileSize: 512,
+		zoomOffset: -1
+	}).addTo(mymap);
+	
+var popup = L.popup();
+var marker = 0;
+var markerlayer1;
+var markerlayer2;
+var request = "http://localhost:8000/route/"
+var origin;
+var target;
+function onMapClick(e) {
+    //popup
+      //  .setLatLng(e.latlng)
+        //.setContent("You clicked the map at " + e.latlng.toString())
+        //.openOn(mymap);
+		
+	//	if(L.geoJson(geojsonFeature, {}).addTo(mymap).pins.getLayers().length > 2) {
+		//	mymap.eachLayer((layer) => {
+			//	layer.remove();	
+		//	});
+
+		//}
+		if(marker == 0) {
+			markerlayer1 = new L.Marker(e.latlng);
+			mymap.addLayer(markerlayer1);
+			marker++
+			origin = e.latlng;
+		} else if(marker == 1) {
+			markerlayer2 = new L.Marker(e.latlng);
+			mymap.addLayer(markerlayer2);
+			marker++;
+			target = e.latlng;
+			data();
+		} else if(marker == 2 ) {
+		mymap.removeLayer(markerlayer1);
+		mymap.removeLayer(markerlayer2);
+		mymap.removeLayer(polyline);
+		markerlayer1 = new L.Marker(e.latlng);
+		mymap.addLayer(markerlayer1);
+		marker = 1;
+					origin = e.latlng;
+
+		}
+
+
+		}
+
+function makeGetRequest(path) { 
+    return new Promise(function (resolve, reject) { 
+        ajax.get(path).then( 
+            (response) => { 
+                var result = response.data; 
+                console.log('Processing Request'); 
+                resolve(result); 
+            }, 
+                (error) => { 
+                reject(error); 
+            } 
+        ); 
+    }); 
+} 
+function httpGet(theUrl)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+    xmlHttp.send( null );
+    return xmlHttp.responseText;
+} 
+async function data() { 
+	var query = request + origin.lat + "/" + origin.lng + "/" + target.lat + "/" + target.lng;
+    var result = httpGet(query); 
+    console.log(result.result); 
+    console.log('Statement 2'); 
+	var path = JSON.parse(result);
+	console.log(path);
+	polyline = L.polyline(path, {color: 'red'}).addTo(mymap);
+	mymap.fitBounds(polyline.getBounds());
+
+} 
+mymap.on('click', onMapClick);
+// create a red polyline from an array of LatLng points
+var latlngs = [
+    [45.51, -122.68],
+    [37.77, -122.43],
+    [34.04, -118.2]
+];
+
+var polyline; // = L.polyline(latlngs, {color: 'red'}).addTo(mymap);
+
+// zoom the map to the polyline
+</script>
+
+</body>
+</html>
