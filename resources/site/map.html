@@ -7,109 +7,94 @@
  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
    crossorigin=""></script>
-
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.0.2/vue.cjs.js"
+         integrity="sha512-eQ0ta/ODTFDM2vfYF86kMJhuHENG7y0vDsK9ub+X7PHan0CC2ozg7jXVFDYtAgCJZpyzFlaDyYKmus6k5+dC1g=="
+         crossorigin=""></script>
+ <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/angular/9.1.13/core.umd.min.js" integrity="sha512-xz2dzias+LaGVRN2l5gLPCuOxRNTNUBjXLCb8K8zVK2su10yf6c+LQYszgI7QMD4YTExC4N6nUoosyUuaF5NkA=="></script>
+-->
 </head>
 <body>
- <div id="map" style="height: 900px"></div>
+<div id="map" style="height: 900px"></div>
 <script>
-var mymap = L.map('map').setView([48.745, 9.105], 15);
+ var mymap = L.map('map').setView([48.745, 9.105], 15);
 
-	L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-		//maxZoom: 18,
-		attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-			'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-		id: 'mapbox/streets-v11',
-		tileSize: 512,
-		zoomOffset: -1
-	}).addTo(mymap);
-	
-var popup = L.popup();
-var marker = 0;
-var markerlayer1;
-var markerlayer2;
-var request = "http://localhost:8000/route/"
-var origin;
-var target;
-function onMapClick(e) {
-    //popup
-      //  .setLatLng(e.latlng)
-        //.setContent("You clicked the map at " + e.latlng.toString())
-        //.openOn(mymap);
-		
-	//	if(L.geoJson(geojsonFeature, {}).addTo(mymap).pins.getLayers().length > 2) {
-		//	mymap.eachLayer((layer) => {
-			//	layer.remove();	
-		//	});
+ //L.tileLayer('https://tiles.fmi.uni-stuttgart.de/{z}/{x}/{y}.png', {
+ L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+  maxZoom: 18,
+  attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+          'Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>',
+  id: 'mapbox/streets-v11',
+  tileSize: 512,
+  zoomOffset: -1
+ }).addTo(mymap);
+let blocked = false;
+let step1_blocked = false;
+ var marker = 0;
+ var markerlayer1, markerlayer2, polyline;
+ const baseUrl = "http://localhost:8000/"
+ var origin, target;
+ let startNode, targetNode;
+ function onMapClick(e) {
+  if(!blocked) {
 
-		//}
-		if(marker == 0) {
-			markerlayer1 = new L.Marker(e.latlng);
-			mymap.addLayer(markerlayer1);
-			marker++
-			origin = e.latlng;
-		} else if(marker == 1) {
-			markerlayer2 = new L.Marker(e.latlng);
-			mymap.addLayer(markerlayer2);
-			marker++;
-			target = e.latlng;
-			data();
-		} else if(marker == 2 ) {
-		mymap.removeLayer(markerlayer1);
-		mymap.removeLayer(markerlayer2);
-		mymap.removeLayer(polyline);
-		markerlayer1 = new L.Marker(e.latlng);
-		mymap.addLayer(markerlayer1);
-		marker = 1;
-					origin = e.latlng;
+   if(marker == 2 ) {
+    mymap.removeLayer(markerlayer1);
+    mymap.removeLayer(markerlayer2);
+    mymap.removeLayer(polyline);
+    marker = 0;
+   }
+   if(marker == 0) {
+    markerlayer1 = new L.Marker(e.latlng);
+    mymap.addLayer(markerlayer1);
+    marker++
+    origin = e.latlng;
+    step1_blocked = true;
+    fetch(baseUrl + 'node/' + e.latlng["lat"] + '/' + e.latlng["lng"])
+            .then(response => response.json())
+            .then(json => {
+             startNode = json;
+             console.log(startNode);
+             step1_blocked = false;
+            });
+   } else if(marker == 1) {
+    markerlayer2 = new L.Marker(e.latlng);
+    mymap.addLayer(markerlayer2);
+    target = e.latlng;
+    blocked = true;
+    fetch(baseUrl + 'node/' + e.latlng["lat"] + '/' + e.latlng["lng"])
+            .then(response => response.json())
+            .then(json => {
+             targetNode = json;
+             console.log(startNode);
+            }).then( () => calculateRoute());
+    marker++;
+   }
+  }
 
-		}
+
+ }
+
+ async function calculateRoute() {
+  while(step1_blocked) {}
+  fetch(baseUrl + 'route/nodes/' + startNode["id"] + '/' + targetNode["id"])
+          .then(request => request.json())
+          .then(json => {
+           path = json;
+           polyline = L.polyline(json, {color: 'red'}).addTo(mymap);
+           mymap.fitBounds(polyline.getBounds());
+           blocked = false
+          });
 
 
-		}
+ }
+ mymap.on('click', onMapClick);
+ // create a red polyline from an array of LatLng points
+ var latlngs = [
+  [45.51, -122.68],
+  [37.77, -122.43],
+  [34.04, -118.2]
+ ];
 
-function makeGetRequest(path) { 
-    return new Promise(function (resolve, reject) { 
-        ajax.get(path).then( 
-            (response) => { 
-                var result = response.data; 
-                console.log('Processing Request'); 
-                resolve(result); 
-            }, 
-                (error) => { 
-                reject(error); 
-            } 
-        ); 
-    }); 
-} 
-function httpGet(theUrl)
-{
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-    xmlHttp.send( null );
-    return xmlHttp.responseText;
-} 
-async function data() { 
-	var query = request + origin.lat + "/" + origin.lng + "/" + target.lat + "/" + target.lng;
-    var result = httpGet(query); 
-    console.log(result.result); 
-    console.log('Statement 2'); 
-	var path = JSON.parse(result);
-	console.log(path);
-	polyline = L.polyline(path, {color: 'red'}).addTo(mymap);
-	mymap.fitBounds(polyline.getBounds());
-
-} 
-mymap.on('click', onMapClick);
-// create a red polyline from an array of LatLng points
-var latlngs = [
-    [45.51, -122.68],
-    [37.77, -122.43],
-    [34.04, -118.2]
-];
-
-var polyline; // = L.polyline(latlngs, {color: 'red'}).addTo(mymap);
-
-// zoom the map to the polyline
 </script>
 
 </body>
