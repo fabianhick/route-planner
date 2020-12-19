@@ -130,7 +130,7 @@ fun startServer() {
             val server = Web()
         }
     }*/
-    val thread = Thread(Web(Global.graph))
+    val thread = Thread(Web())
     thread.start()
 
     println("Starting server in thread.")
@@ -142,7 +142,5 @@ fun startServer() {
     }
 
     thread.interrupt()
-
-    thread.stop()
 
 }
