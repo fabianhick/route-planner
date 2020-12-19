@@ -88,8 +88,9 @@ class Web (graph: Graph) : Runnable {
 
                 get ("/position/{node}") {
                     var time = measureTimeMillis {
-                        println("Received request, getting position...")
-                        val point = Global.graph.getNode(call.parameters["node"]!!.toInt())
+                        val node: Int = call.parameters["node"]!!.toInt()
+                        println("Received request, getting position for node #$node ...")
+                        val point = Global.graph.getNode(node)
                         call.respondText(Gson().toJson(point.position).toString())
                     }
                     println("Calculating request took ${time/1000} s.")
