@@ -7,7 +7,9 @@ import java.io.File
 import java.lang.IllegalStateException
 import java.util.*
 import java.util.function.Function
+import kotlin.Comparator
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
 
@@ -104,6 +106,49 @@ class Graph (val fileName: String) {
 
     fun distanceTo(start: Int = 0, target: Int = 0) : DijkstraPath {
 
+        var distance: distance = distance(Array(numNodes) { i -> Double.POSITIVE_INFINITY })
+        val queue: Heap = Heap(numNodes, NodeComparator(distance))
+        val previous: IntArray = IntArray(numNodes) { i -> -1}
+        distance.data[start] = 0.0
+
+        queue.insert(nodes[start])
+        while(queue.peek() != nodes[target]) {
+            val u = queue.poll()
+            var index: Int = u.offset
+
+            // Continue if node doesn't have any edges
+            if(index == Int.MIN_VALUE)
+                continue
+            //println(edges[index].src == u.id)
+            //println("src: ${edges[index].src}; id: ${u.id}")
+            while(edges[index].src == u.id) {
+                val edge = edges[index]
+                val v = nodes[edge.target]
+                val alt: Double = distance.data[u.id] + edge.weight
+                if (alt < distance.data[v.id]) {
+                    distance.data[v.id] = alt
+
+                    previous[v.id] = u.id
+
+                    if(!queue.contains(v)) {
+                        queue.insert(v);
+                    } else {
+                        queue.decreaseKey(v)
+                    }
+                }
+                index++
+                if(index > edges.size -1) {
+                    // TODO: println("[!!!!!] Skipped, due to index overlap!")
+                    break
+                }
+            }
+        }
+        //return distance.data
+        return DijkstraPath(distance.data, previous, nodes)
+    }
+
+    /*   fun distanceTo(start: Int = 0, target: Int = 0) : DijkstraPath {
+
         class NodeComparator(ref : distance) : Comparator<Node> {
             var ref = ref
             override fun compare(o1: Node, o2: Node): Int {
@@ -153,22 +198,76 @@ class Graph (val fileName: String) {
         }
         //return distance.data
         return DijkstraPath(distance.data, previous, nodes)
-    }
-
-    // shared data class for comparator and dijkstra
-    data class distance(var data: Array<Double>)
-    fun oneToAll(start: Int = 0) : DijkstraPath {
-
-        class NodeComparator(ref : distance) : Comparator<Node> {
-            var ref = ref
-            override fun compare(o1: Node, o2: Node): Int {
-                if(ref.data[o1.id] == ref.data[o2.id]) {
-                    return o1.id.compareTo(o2.id)
-                } else {
-                    return ref.data[o1.id].compareTo(ref.data[o2.id])
-                }
+    }*/
+    class NodeComparator(ref : distance) : Comparator<Node> {
+        var ref = ref
+        override fun compare(o1: Node, o2: Node): Int {
+            if(ref.data[o1.id] == ref.data[o2.id]) {
+                return o1.id.compareTo(o2.id)
+            } else {
+                return ref.data[o1.id].compareTo(ref.data[o2.id])
             }
         }
+    }
+    // shared data class for comparator and dijkstra
+    data class distance(var data: Array<Double>)
+
+    fun oneToAll(start: Int = 0) : DijkstraPath {
+
+
+
+        var distance: distance = distance(Array(numNodes) { i -> Double.POSITIVE_INFINITY })
+        val queue: Heap = Heap(numNodes, NodeComparator(distance))
+        val previous: IntArray = IntArray(numNodes) { i -> -1}
+        distance.data[start] = 0.0
+
+        queue.insert(nodes[start])
+
+        while(queue.isNotEmpty()) {
+            val u = queue.poll()
+            var index: Int = u.offset
+
+            // Continue if node doesn't have any edges
+            if(index == Int.MIN_VALUE)
+                continue
+            //println(edges[index].src == u.id)
+            //println("src: ${edges[index].src}; id: ${u.id}")
+            while(edges[index].src == u.id) {
+                val edge = edges[index]
+                val v = nodes[edge.target]
+                val alt: Double = distance.data[u.id] + edge.weight
+                if (alt < distance.data[v.id]) {
+                    distance.data[v.id] = alt
+
+                    previous[v.id] = u.id
+
+                    if(!queue.contains(v)) {
+                        queue.insert(v);
+                    } else {
+                        queue.decreaseKey(v)
+                    }
+
+                    //   v.distance = alt
+                    //queue.add(v)
+
+                }
+                index++
+                if(index > edges.size -1) {
+                    // TODO: println("[!!!!!] Skipped, due to index overlap!")
+                    break
+                }
+
+            }
+        }
+        //return distance.data
+        return DijkstraPath(distance.data, previous, nodes)
+    }
+
+
+
+    /*   fun oneToAll(start: Int = 0) : DijkstraPath {
+
+
 
         var distance: distance = distance(Array(numNodes) { i -> Double.POSITIVE_INFINITY })
         val queue: TreeSet<Node> = TreeSet(NodeComparator(distance))
@@ -208,7 +307,7 @@ class Graph (val fileName: String) {
         }
         //return distance.data
         return DijkstraPath(distance.data, previous, nodes)
-    }
+    }*/
     data class DijkstraPath(val distance: Array<Double>, val way: IntArray, val nodes: Array<Node>) {
         fun getPathAsArrayBackwards (node: Int) : LinkedList<Array<Double>> {
             val result: LinkedList<Array<Double>> = LinkedList()
@@ -314,6 +413,97 @@ class Graph (val fileName: String) {
         println("Finished calculating challenge. Average time for each line: ${(g_time/1000)/counter}s")
     }
 
+    data class Heap(val size: Int, val comparator: NodeComparator) {
+        var currentSize: Int = 0
+        val heap: Array<Graph.Node?>;
+        val map: IntArray = IntArray(size) { -1 }
+        init {
+            heap = Array(size+1) { null }
+        }
+        fun contains(node: Node) : Boolean {
+            return map[node.id] != -1;
+        }
+        fun isNotEmpty() = currentSize > 0;
+
+        fun swap(first: Graph.Node, second: Graph.Node) {
+            val i = map[first.id]
+            val j = map[second.id]
+
+            heap[j] = first;
+            //heap[j] = second;
+            //heap[i] = first;
+            heap[i] = second;
+
+            map[first.id] = j;
+            map[second.id] = i;
+            //TODO()
+        }
+
+        fun insert(key: Graph.Node) {
+            currentSize++;
+            heap[currentSize] = key;
+            map[key.id] = currentSize;
+            var i = currentSize;
+            while (i > 1) {
+                if(comparator.compare(heap[i]!!, heap[i/2]!!) == -1) {
+                    swap(heap[i]!!, heap[i/2]!!)
+                    i = i/2;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        fun peek() : Node {
+            return heap[1]!!;
+        }
+        // extract
+        fun poll() : Node {
+            val answer = heap[1]!!
+            map[answer.id] = -1;
+            heap[1] = heap[currentSize];
+
+            map[heap[1]!!.id] = 1
+
+            currentSize--;
+            var i = 1;
+
+            while(2*i <= currentSize) {
+                if((2*i+1 > currentSize) || (comparator.compare(heap[2*i]!!, heap[2*i+1]!!) == -1)) {
+                    if (comparator.compare(heap[i]!!, heap[2*i]!!) == 1) {
+                        swap(heap[i]!!, heap[2*i]!!)
+                        i = 2*i;
+                    } else {
+                        break;
+                    }
+                } else {
+                    if (comparator.compare(heap[i]!!, heap[2*i+1]!!) == 1) {
+                        swap(heap[i]!!, heap[2*i+1]!!);
+                        i = 2*i+1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            return answer;
+        }
+
+        fun decreaseKey(key: Node) {
+            var i = map[key.id];
+            //map[key.id] = -1;
+            // A[i] = A[i] - sub; // already via comparator
+            //
+            while (i > 1) {
+                if (comparator.compare(heap[i]!!, heap[i/2]!!) == -1) {
+                    swap(heap[i]!!, heap[i/2]!!)
+                    i /= 2;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
 }
 /*
 class DijkstraQueue<T>()  {
@@ -357,3 +547,5 @@ class DijkstraQueue<T>()  {
         size--
     }
 */
+
+
