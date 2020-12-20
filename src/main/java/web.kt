@@ -102,6 +102,14 @@ class Web() : Runnable {
                     }
                     println("Calculating request took ${time/1000} s.")
                 }
+                get("/nodes/size") {
+                    var time = measureTimeMillis {
+                        println("Received request, return size of nodes ...")
+                        val size = Global.graph.nodes.size
+                        call.respondText(Gson().toJson(size).toString())
+                    }
+                    println("Calculating request took ${time/1000} s.")
+                }
 
                 static {
                     resource("/", "site/map.html")

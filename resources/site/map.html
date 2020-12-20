@@ -46,23 +46,25 @@
             <form class="col s9">
                 <div class="row">
                     <div class="input-field col s6">
-                        <input type="number" v-model="originNodeId" placeholder="Please enter" id="originNodeId"
-                               v-on:change="getOriginNode">
+                        <input type="number" min="0" :max='maxValue' v-model="originNodeId" placeholder="Please enter" id="originNodeId"
+                               v-on:change="getOriginNode" class="validate">
                         <label for="originNodeId">Origin node ID</label>
-                        <span class="helper-text" v-if="origin">Latitude: {{ origin.latitude }} Longitude: {{ origin.longitude }}</span>
+                        <span class="helper-text" data-error="Invalid input" v-if="origin">Latitude: {{ origin.latitude }} Longitude: {{ origin.longitude }}</span>
+                        <span class="helper-text" data-error="Invalid input" v-if="!origin"></span>
                     </div>
                     <div class="input-field col s6">
-                        <input type="number" v-model="targetNodeId" placeholder="Please enter" id="targetNodeId"
-                               v-on:change="getTargetNode" class="active">
+                        <input type="number" min="0" :max='maxValue' v-model="targetNodeId" placeholder="Please enter" id="targetNodeId"
+                               v-on:change="getTargetNode" class="validate">
                         <label for="targetNodeId">Target node ID</label>
-                        <span class="helper-text" v-if="target">Latitude: {{ target.latitude }} Longitude: {{ target.longitude }}</span>
+                        <span class="helper-text" data-error="Invalid input" v-if="target">Latitude: {{ target.latitude }} Longitude: {{ target.longitude }}</span>
+                        <span class="helper-text" data-error="Invalid input" v-if="!target"></span>
                     </div>
                 </div>
             </form>
             <div class="col s2">
                 <div class="row">
                     <div class="center-al" style="transform: translateY(30%)">
-                        <a class="waves-effect waves-light btn" v-on:click="calcRoute" v-bind:class="(blocked||originNodeId==null||targetNodeId==null)?'disabled':''"><i class="material-icons left">map</i>Calculate route</a>
+                        <a class="waves-effect waves-light btn" v-on:click="calcRoute" v-bind:class="(blocked||originNodeId==null||targetNodeId==null||originNodeId>maxValue||targetNodeId>maxValue||originNodeId<0||targetNodeId<0)?'disabled':''"><i class="material-icons left">map</i>Calculate route</a>
                     </div>
                 </div>
             </div>
@@ -92,12 +94,13 @@
     var app = new Vue({
         el: '#app',
         data: {
+            maxValue: Number.MAX_SAFE_INTEGER,
             originNodeId: null,
             targetNodeId: null,
             origin: null,
             target: null,
             message: "Test",
-            loading: false,
+            loading: 0,
             blocked: false,
             polyline: null,
             marker: 0,
@@ -108,6 +111,7 @@
         },
         methods: {
             getOriginNode: function () {
+                if(app.originNodeId > app.maxValue || app.originNodeId < 0) return;
                 fetch('/position/' + app.originNodeId).then(result => result.json())
                     .then(json => app.origin = json)
                     .then(() => {
@@ -123,6 +127,7 @@
                     })
             },
             getTargetNode: function () {
+                if(app.targetNodeId > app.maxValue || app.targetNodeId < 0) return;
                 fetch('/position/' + app.targetNodeId).then(result => result.json()).then(json => app.target = json).then(() => {
                     if (app.markerlayer2 != null) {
                         app.mymap.removeLayer(app.markerlayer2);
@@ -160,13 +165,13 @@
 
     const fetching = window.fetch;
     window.fetch = function (path) {
-        app.loading = true
+        app.loading++
         return fetching(path).then((result) => {
-            app.loading = false
+            app.loading--
             return result
         })
     }
-
+fetch('/nodes/size').then(result => result.json()).then(json => app.maxValue = json).then(() => console.log("Number of nodes: " + app.maxValue))
     //L.tileLayer('https://tiles.fmi.uni-stuttgart.de/{z}/{x}/{y}.png', {
     L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
         maxZoom: 18,
@@ -216,6 +221,8 @@
                 app.mymap.addLayer(app.markerlayer2);
                 target = e.latlng;
                 app.blocked = true;
+                app.targetNodeId = null
+                app.target = null
                 fetch(baseUrl + 'node/' + e.latlng["lat"] + '/' + e.latlng["lng"])
                     .then(response => response.json())
                     .then(json => {
