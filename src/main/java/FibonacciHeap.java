@@ -108,9 +108,14 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 
 		FibonacciEntry<T> conditionElement = null;
 
+		FibonacciEntry<T> checkElement;
+
 
 		for (FibonacciEntry<T> current = this.min; conditionElement == null || conditionElement != current; current = current.next) {
-			conditionElement = this.min;
+			if (conditionElement == null) {
+				conditionElement = this.min;
+			}
+			checkElement = current;
 			while (true) {
 				while (current.degree >= treeTable.size()) {
 					treeTable.add(null);
@@ -139,11 +144,11 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 
 				currentMin.degree++;
 
-				current = currentMin;
+				checkElement = currentMin;
 			}
 
-			if (current.priority <= this.min.priority) {
-				this.min = current;
+			if (checkElement.priority <= this.min.priority) {
+				this.min = checkElement;
 			}
 		}
 		return min.element;
