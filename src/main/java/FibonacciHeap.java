@@ -49,7 +49,7 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 	@Override
 	public FibonacciEntry<T> insert(T key, final double priority) {
 		this.checkPriority(priority);
-		FibonacciEntry<T> result = new FibonacciEntry<T>(key, priority);
+		FibonacciEntry<T> result = new FibonacciEntry<>(key, priority);
 
 		this.min = merge(this.min, result);
 
@@ -105,49 +105,77 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 		}
 		
 		List<FibonacciEntry<T>> treeTable = new ArrayList<>();
-		
-		List<FibonacciEntry<T>> toVisit = new ArrayList<>();
-		
-		for (FibonacciEntry<T> current = this.min; toVisit.isEmpty() || toVisit.get(0) != current; current = current.next) {
-			toVisit.add(current);
+
+		FibonacciEntry<T> firstElement = this.min;
+
+		while (true) {
+			while (this.min.degree >= treeTable.size()) {
+				treeTable.add(null);
+			}
+
+			if (treeTable.get(this.min.degree) == null) {
+				treeTable.set(this.min.degree, this.min);
+				break;
+			}
+
+			FibonacciEntry<T> other = treeTable.get(this.min.degree);
+			treeTable.set(this.min.degree, null);
+
+			FibonacciEntry<T> currentMin = (other.priority < this.min.priority) ? other : this.min;
+			FibonacciEntry<T> currentMax = (other.priority < this.min.priority) ? this.min : other;
+
+			currentMax.next.previous = currentMax.previous;
+			currentMax.previous.next = currentMax.next;
+
+			currentMax.next = currentMax.previous = currentMax;
+			currentMin.child = merge(currentMin.child, currentMax);
+
+			currentMax.parent = currentMin;
+
+			currentMax.marked = false;
+
+			currentMin.degree++;
+
+			this.min = currentMin;
 		}
-		
-		for (FibonacciEntry<T> current : toVisit) {
+
+		for (FibonacciEntry<T> current = this.min.next; firstElement != current; current = current.next) {
 			while (true) {
 				while (current.degree >= treeTable.size()) {
 					treeTable.add(null);
 				}
-				
+
 				if (treeTable.get(current.degree) == null) {
 					treeTable.set(current.degree, current);
 					break;
 				}
-				
+
 				FibonacciEntry<T> other = treeTable.get(current.degree);
 				treeTable.set(current.degree, null);
-				
+
 				FibonacciEntry<T> currentMin = (other.priority < current.priority) ? other : current;
 				FibonacciEntry<T> currentMax = (other.priority < current.priority) ? current : other;
-				
+
 				currentMax.next.previous = currentMax.previous;
 				currentMax.previous.next = currentMax.next;
-				
+
 				currentMax.next = currentMax.previous = currentMax;
 				currentMin.child = merge(currentMin.child, currentMax);
-				
+
 				currentMax.parent = currentMin;
-				
+
 				currentMax.marked = false;
-				
+
 				currentMin.degree++;
-				
+
 				current = currentMin;
 			}
-			
+
 			if (current.priority <= this.min.priority) {
 				this.min = current;
 			}
 		}
+
 		return min.element;
 	}
 
@@ -211,7 +239,7 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 			return null;
 		} else if (first != null && second == null) {
 			return first;
-		} else if (first == null && second != null) {
+		} else if (first == null) {
 			return second;
 		} else {
 			FibonacciEntry<T> firstNext = first.next;
