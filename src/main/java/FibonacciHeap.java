@@ -106,12 +106,14 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 		
 		List<FibonacciEntry<T>> treeTable = new ArrayList<>();
 
-		FibonacciEntry<T> checkElement = this.min;
+		FibonacciEntry<T> conditionElement = null;
 
-		boolean firstRun = true;
+		FibonacciEntry<T> checkElement;
 
-		for (FibonacciEntry<T> current = this.min; firstRun || checkElement != current; current = current.next) {
-			firstRun = false;
+
+		for (FibonacciEntry<T> current = this.min; conditionElement == null || conditionElement != current; current = current.next) {
+			conditionElement = this.min;
+			checkElement = current;
 			while (true) {
 				while (current.degree >= treeTable.size()) {
 					treeTable.add(null);
@@ -140,48 +142,11 @@ public class FibonacciHeap<T> implements DataHeap<T> {
 
 				currentMin.degree++;
 
-				current = currentMin;
+				checkElement = currentMin;
 			}
 
-			if (current.priority <= this.min.priority) {
-				this.min = current;
-			}
-		}
-
-		for (FibonacciEntry<T> current : toVisit) {
-			while (true) {
-				while (current.degree >= treeTable.size()) {
-					treeTable.add(null);
-				}
-
-				if (treeTable.get(current.degree) == null) {
-					treeTable.set(current.degree, current);
-					break;
-				}
-
-				FibonacciEntry<T> other = treeTable.get(current.degree);
-				treeTable.set(current.degree, null);
-
-				FibonacciEntry<T> currentMin = (other.priority < current.priority) ? other : current;
-				FibonacciEntry<T> currentMax = (other.priority < current.priority) ? current : other;
-
-				currentMax.next.previous = currentMax.previous;
-				currentMax.previous.next = currentMax.next;
-
-				currentMax.next = currentMax.previous = currentMax;
-				currentMin.child = merge(currentMin.child, currentMax);
-
-				currentMax.parent = currentMin;
-
-				currentMax.marked = false;
-
-				currentMin.degree++;
-
-				current = currentMin;
-			}
-
-			if (current.priority <= this.min.priority) {
-				this.min = current;
+			if (checkElement.priority <= this.min.priority) {
+				this.min = checkElement;
 			}
 		}
 		return min.element;
