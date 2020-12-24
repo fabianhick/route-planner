@@ -3,26 +3,21 @@
  * Fabian Hick
  */
 
-import Global.graph
-import io.ktor.application.*
-import io.ktor.features.*
-import io.ktor.http.content.*
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import java.io.File
 import com.google.gson.Gson
+import io.ktor.application.*
+import io.ktor.http.content.*
+import io.ktor.response.*
+import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import java.util.concurrent.TimeUnit
-import kotlin.math.roundToLong
 import kotlin.system.measureTimeMillis
 
 /*
  * Copyright (c) 2020.
  * Fabian Hick
  */
-class Web() : Runnable {
+class Web : Runnable {
     override fun run() {
         val server = embeddedServer(Netty, port = 8000) {
 
@@ -49,9 +44,9 @@ class Web() : Runnable {
                         println("Finished calculating nearest nodes in ${time/1000}s")
                         println("Starting to calculate route from #$start to #$poi...")
                         try {
-                            val paths: Graph.DijkstraPath = Global.graph.distanceTo(start, poi);
+                            val paths: Graph.DijkstraPath = Global.graph.calculateDijkstra(start, poi)
                             println("Dijkstra finished. Calculating visual path.")
-                            val response = paths.getPathAsArrayBackwards(poi);
+                            val response = paths.getPathAsArrayBackwards(poi)
                             call.respondText(Gson().toJson(response).toString())
                         } catch (e: Throwable) {
                             call.respondText { "An error occured: " + e.message }
@@ -69,8 +64,8 @@ class Web() : Runnable {
                         val target: Int = call.parameters["target"]!!.toInt()
                         println("Starting to calculate route from #$origin to #$target...")
                         try {
-                            val paths: Graph.DijkstraPath = Global.graph.distanceTo(origin, target);
-                            val response = paths.getPathAsArrayBackwards(target);
+                            val paths: Graph.DijkstraPath = Global.graph.calculateDijkstra(origin, target)
+                            val response = paths.getPathAsArrayBackwards(target)
                             call.respondText(Gson().toJson(response).toString())
                         } catch (e: Throwable) {
                             call.respondText { "An error occured: " + e.message }
