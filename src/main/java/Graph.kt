@@ -127,7 +127,7 @@ class Graph(val fileName: String) {
     fun calculateDijkstra(start: Int = 0, target: Int = -1): DijkstraPath {
         val distance: distance = distance(IntArray(numNodes) { Int.MAX_VALUE })
         val queue: Heap = Heap(numNodes, NodeComparator(distance))
-        val previous: IntArray = IntArray(numNodes) { i -> -1 }
+        val previous: IntArray = IntArray(numNodes) { -1 }
         distance.data[start] = 0
         queue.insert(start)
 
@@ -254,13 +254,13 @@ class Graph(val fileName: String) {
                 writeResult(result, challengeNodes, output)
             }
         } else {
-            var challengeNodes: List<String> = ArrayList<String>()
+            var challengeNodes: List<String>
             var counter: Int = 0
             var g_time: Long = 0
 
             File(input).forEachLine {
                 challengeNodes = it.trim().split(" ")
-                val currentNode = challengeNodes[0].toInt()
+                currentNode = challengeNodes[0].toInt()
                 println("Calculating dijkstra for way from $currentNode to ${challengeNodes[1].toInt()}...")
                 var time = measureTimeMillis {
                     result = calculateDijkstra(challengeNodes[0].toInt(), challengeNodes[1].toInt())
