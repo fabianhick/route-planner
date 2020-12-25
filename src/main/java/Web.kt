@@ -35,8 +35,8 @@ class Web : Runnable {
                             call.parameters["target_lat"]!!.toDouble(),
                             call.parameters["target_long"]!!.toDouble()
                         )
-                        var start: Int
-                        var poi: Int
+                        var start: Int = 0
+                        var poi: Int = 0
                         val time = measureTimeMillis {
                             start = Global.graph.findNearestNode(origin).id
                             poi = Global.graph.findNearestNode(target).id

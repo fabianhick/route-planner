@@ -74,7 +74,7 @@ fun nodePosition() {
 fun oneToAll() {
     print("From which node would you like to know the distance? ")
     val source = readLine()?.toIntOrNull() ?: 0
-    var path: Graph.DijkstraPath?
+    var path: Graph.DijkstraPath? = null
     println("Calculating one-to-all dijkstra... please wait.")
     val time = measureTimeMillis {
         path = Global.graph.calculateDijkstra(source)
