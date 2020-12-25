@@ -147,7 +147,7 @@ class Graph(val fileName: String) {
     /**
      * Performs a Dijkstra algorithm iteration
      */
-    private fun process(queue: Heap, distance: distance, previous: IntArray) {
+    private inline fun process(queue: Heap, distance: distance, previous: IntArray) {
         val u = queue.poll()
         var index: Int = nodes[u].offset
 
@@ -295,7 +295,7 @@ class Graph(val fileName: String) {
 
         fun isNotEmpty() = currentSize > 0
 
-        fun swap(first: Int, second: Int) {
+        inline fun swap(first: Int, second: Int) {
             val i = map[first]
             val j = map[second]
 
