@@ -25,7 +25,7 @@ class Web : Runnable {
 
                 // Get route
                 get("/route/{orig_lat}/{orig_long}/{target_lat}/{target_long}") {
-                    var time = measureTimeMillis {
+                    val time = measureTimeMillis {
                         println("Received request, calculating nearest nodes...")
                         val origin = Graph.Position(
                             call.parameters["orig_lat"]!!.toDouble(),
@@ -37,7 +37,7 @@ class Web : Runnable {
                         )
                         var start: Int
                         var poi: Int
-                        var time = measureTimeMillis {
+                        val time = measureTimeMillis {
                             start = Global.graph.findNearestNode(origin).id
                             poi = Global.graph.findNearestNode(target).id
                         }
@@ -49,8 +49,8 @@ class Web : Runnable {
                             val response = paths.getPathAsArrayBackwards(poi)
                             call.respondText(Gson().toJson(response).toString())
                         } catch (e: Throwable) {
-                            call.respondText { "An error occured: " + e.message }
-                            println("An error occured: " + e.message)
+                            call.respondText { "An error occurred: " + e.message }
+                            println("An error occurred: " + e.message)
                             e.printStackTrace()
 
                         }
@@ -59,7 +59,7 @@ class Web : Runnable {
                 }
                 // Get route
                 get("/route/nodes/{origin}/{target}") {
-                    var time = measureTimeMillis {
+                    val time = measureTimeMillis {
                         val origin: Int = call.parameters["origin"]!!.toInt()
                         val target: Int = call.parameters["target"]!!.toInt()
                         println("Starting to calculate route from #$origin to #$target...")
@@ -68,8 +68,8 @@ class Web : Runnable {
                             val response = paths.getPathAsArrayBackwards(target)
                             call.respondText(Gson().toJson(response).toString())
                         } catch (e: Throwable) {
-                            call.respondText { "An error occured: " + e.message }
-                            println("An error occured: " + e.message)
+                            call.respondText { "An error occurred: " + e.message }
+                            println("An error occurred: " + e.message)
                             e.printStackTrace()
 
                         }
@@ -78,7 +78,7 @@ class Web : Runnable {
                 }
 
                 get("/node/{lat}/{long}") {
-                    var time = measureTimeMillis {
+                    val time = measureTimeMillis {
                         println("Received request, calculating nearest nodes...")
                         val point =
                             Graph.Position(call.parameters["lat"]!!.toDouble(), call.parameters["long"]!!.toDouble())
@@ -89,7 +89,7 @@ class Web : Runnable {
                 }
 
                 get("/position/{node}") {
-                    var time = measureTimeMillis {
+                    val time = measureTimeMillis {
                         val node: Int = call.parameters["node"]!!.toInt()
                         println("Received request, getting position for node #$node ...")
                         val point = Global.graph.getNode(node)
@@ -98,7 +98,7 @@ class Web : Runnable {
                     println("Calculating request took ${time/1000} s.")
                 }
                 get("/nodes/size") {
-                    var time = measureTimeMillis {
+                    val time = measureTimeMillis {
                         println("Received request, return size of nodes ...")
                         val size = Global.graph.nodes.size
                         call.respondText(Gson().toJson(size).toString())

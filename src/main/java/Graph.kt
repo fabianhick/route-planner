@@ -5,14 +5,15 @@
 
 import java.io.File
 import java.util.*
-import java.util.function.Function
 import kotlin.Comparator
 import kotlin.collections.ArrayList
-import kotlin.math.*
+import kotlin.math.PI
+import kotlin.math.acos
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.system.measureTimeMillis
 
-class Graph(val fileName: String) {
-
+class Graph(private val fileName: String) {
 
     data class Position(val latitude: Double, val longitude: Double) {
         /**
@@ -28,13 +29,13 @@ class Graph(val fileName: String) {
                 sin(origin.latitude) * sin(target.latitude)
                         + cos(origin.latitude) * cos(target.latitude) * cos(target.longitude - origin.longitude)
             )
-            return abs(6335.439 * angle)
+            return 6335.439 * angle
         }
 
         /**
          * Returns the current position converted to radian (standard storage would be degree)
          */
-        fun radian(): Position {
+        private inline fun radian(): Position {
             if (longitude < 2 * PI)
                 return this
             return Position(latitude * PI / 180.0, longitude * PI / 180.0)
@@ -45,10 +46,10 @@ class Graph(val fileName: String) {
     data class Edge(val src: Int, val target: Int, val weight: Int)
 
     var nodes: Array<Node> = Array(1) { Node(0, Position(0.0, 0.0), 0) }
-    var edges: Array<Edge> = Array(1) { Edge(0, 0, 0) }
+    private var edges: Array<Edge> = Array(1) { Edge(0, 0, 0) }
 
     var numNodes = 0
-    var numEdges = 0
+    private var numEdges = 0
 
     init {
         loadFile()
@@ -58,39 +59,44 @@ class Graph(val fileName: String) {
         println("Loading file: $fileName")
         var count = 0
         File(fileName).forEachLine {
-            if (it.startsWith("#")) {
-                //println(it.removePrefix("# ").replace(" ", "").split(":"))
-            } else if (numNodes == 0) {
-                numNodes = it.toIntOrNull() ?: 0
-                val temp = Node(0, Position(.0, .0), 0)
-                nodes = Array(numNodes) { temp }
-            } else if (numEdges == 0) {
-                numEdges = it.toIntOrNull() ?: 0
-                val temp = Edge(0, 0, 0)
-                edges = Array(numEdges) { temp }
-            } else {
-                when (count) {
-                    0 -> println("Starting to read nodes.")
-                    numEdges -> println("Finished reading $numNodes nodes.\nStarting to read edges.")
+            when {
+                it.startsWith("#") -> {
+                    //println(it.removePrefix("# ").replace(" ", "").split(":"))
                 }
-                if (count < numNodes) {
-                    with(it.split(" ")) {
-                        nodes[count] = Node(
-                            Int.MIN_VALUE,
-                            Position(latitude = get(2).toDouble(), longitude = get(3).toDouble()),
-                            id = count
-                        )
+                numNodes == 0 -> {
+                    numNodes = it.toIntOrNull() ?: 0
+                    val temp = Node(0, Position(.0, .0), 0)
+                    nodes = Array(numNodes) { temp }
+                }
+                numEdges == 0 -> {
+                    numEdges = it.toIntOrNull() ?: 0
+                    val temp = Edge(0, 0, 0)
+                    edges = Array(numEdges) { temp }
+                }
+                else -> {
+                    when (count) {
+                        0 -> println("Starting to read nodes.")
+                        numEdges -> println("Finished reading $numNodes nodes.\nStarting to read edges.")
                     }
-                } else {
-                    with(it.split(" ")) {
-                        val source: Int = get(0).toInt()
+                    if (count < numNodes) {
+                        with(it.split(" ")) {
+                            nodes[count] = Node(
+                                Int.MIN_VALUE,
+                                Position(latitude = get(2).toDouble(), longitude = get(3).toDouble()),
+                                id = count
+                            )
+                        }
+                    } else {
+                        with(it.split(" ")) {
+                            val source: Int = get(0).toInt()
 
-                        edges[count - numNodes] = Edge(source, target = get(1).toInt(), weight = get(2).toInt())
-                        if (nodes.get(source).offset == Int.MIN_VALUE)
-                            nodes.get(source).offset = count - numNodes
+                            edges[count - numNodes] = Edge(source, target = get(1).toInt(), weight = get(2).toInt())
+                            if (nodes[source].offset == Int.MIN_VALUE)
+                                nodes[source].offset = count - numNodes
+                        }
                     }
+                    count++
                 }
-                count++
             }
 
         }
@@ -103,19 +109,18 @@ class Graph(val fileName: String) {
      * Internal helper.
      * Compares the distance of two nodes for the Heap.
      */
-    class NodeComparator(ref: distance) : Comparator<Int> {
-        private var ref = ref
+    class NodeComparator(private val ref: DistanceStorage) : Comparator<Int> {
         override fun compare(o1: Int, o2: Int): Int {
-            if (ref.data[o1] == ref.data[o2]) {
-                return o1.compareTo(o2)
+            return if (ref.data[o1] == ref.data[o2]) {
+                o1.compareTo(o2)
             } else {
-                return ref.data[o1].compareTo(ref.data[o2])
+                ref.data[o1].compareTo(ref.data[o2])
             }
         }
     }
 
     // shared data class for comparator and dijkstra
-    data class distance(var data: IntArray)
+    data class DistanceStorage(var data: IntArray)
 
     /**
      * Calculates the DijkstraPath from a given start node to a target node.
@@ -125,9 +130,9 @@ class Graph(val fileName: String) {
      * @param target: Another node (default: -1 for one-to-all Dijkstra)
      */
     fun calculateDijkstra(start: Int = 0, target: Int = -1): DijkstraPath {
-        val distance: distance = distance(IntArray(numNodes) { Int.MAX_VALUE })
-        val queue: Heap = Heap(numNodes, NodeComparator(distance))
-        val previous: IntArray = IntArray(numNodes) { -1 }
+        val distance = DistanceStorage(IntArray(numNodes) { Int.MAX_VALUE })
+        val queue = Heap(numNodes, NodeComparator(distance))
+        val previous = IntArray(numNodes) { -1 }
         distance.data[start] = 0
         queue.insert(start)
 
@@ -147,7 +152,7 @@ class Graph(val fileName: String) {
     /**
      * Performs a Dijkstra algorithm iteration
      */
-    private inline fun process(queue: Heap, distance: distance, previous: IntArray) {
+    private inline fun process(queue: Heap, distance: DistanceStorage, previous: IntArray) {
         val u = queue.poll()
         var index: Int = nodes[u].offset
 
@@ -219,18 +224,18 @@ class Graph(val fileName: String) {
     }
 
     fun getNode(id: Int = 0): Node {
-        return nodes.get(id).copy()
+        return nodes[id].copy()
     }
 
-    fun <T> Optional<T>.unwrap(): T? = orElse(null)
+    private fun <T> Optional<T>.unwrap(): T? = orElse(null)
 
     /**
      * Returns the nearest node according to the passed position
      */
     fun findNearestNode(target: Position): Node {
-        var nodes: List<Node> = nodes.toList()
+        val nodes: List<Node> = nodes.toList()
         return nodes.parallelStream()
-            .min(Comparator.comparing(Function<Node, Double> { a: Node -> a.position.distance(target) })).unwrap()!!
+            .min(Comparator.comparing { a: Node -> a.position.distance(target) }).unwrap()!!
         //return nodes.minBy { it.position.distance(target) } ?: throw IllegalStateException("Graph shouldn't be empty") //TODO parallel
     }
 
@@ -246,7 +251,7 @@ class Graph(val fileName: String) {
                     currentNode = challengeNodes[0].toInt()
                     println("Calculating dijkstra for node $currentNode...")
                     result = null
-                    var time = measureTimeMillis {
+                    val time = measureTimeMillis {
                         result = calculateDijkstra(challengeNodes[0].toInt())
                     }
                     println("Finished calculating dijkstra for node #$currentNode after ${time / 1000} seconds.")
@@ -255,28 +260,28 @@ class Graph(val fileName: String) {
             }
         } else {
             var challengeNodes: List<String>
-            var counter: Int = 0
-            var g_time: Long = 0
+            var counter = 0
+            var gTime: Long = 0
 
             File(input).forEachLine {
                 challengeNodes = it.trim().split(" ")
                 currentNode = challengeNodes[0].toInt()
                 println("Calculating dijkstra for way from $currentNode to ${challengeNodes[1].toInt()}...")
-                var time = measureTimeMillis {
+                val time = measureTimeMillis {
                     result = calculateDijkstra(challengeNodes[0].toInt(), challengeNodes[1].toInt())
                 }
                 writeResult(result, challengeNodes, output)
                 println("Finished calculating dijkstra for node #$currentNode after ${time / 1000} seconds.")
                 counter++
-                g_time += time
+                gTime += time
             }
-            println("Finished calculating challenge. Average time for each line: ${(g_time / 1000) / counter}s")
+            println("Finished calculating challenge. Average time for each line: ${(gTime / 1000) / counter}s")
 
         }
     }
 
     private fun writeResult(result: DijkstraPath?, challengeNodes: List<String>, output: String) {
-        val value = result!!.distance.get(challengeNodes[1].toInt())
+        val value = result!!.distance[challengeNodes[1].toInt()]
         var text = value.toString().removeSuffix(".0")
         if (value == Int.MAX_VALUE)
             text = "-1"
@@ -285,9 +290,9 @@ class Graph(val fileName: String) {
 
 
     data class Heap(val size: Int, val comparator: NodeComparator) {
-        var currentSize: Int = 0
-        val heap: IntArray = IntArray(size + 1)
-        val map: IntArray = IntArray(size) { -1 }
+        private var currentSize: Int = 0
+        private val heap: IntArray = IntArray(size + 1)
+        private val map: IntArray = IntArray(size) { -1 }
 
         fun contains(node: Int): Boolean {
             return map[node] != -1
@@ -295,7 +300,7 @@ class Graph(val fileName: String) {
 
         fun isNotEmpty() = currentSize > 0
 
-        inline fun swap(first: Int, second: Int) {
+        private inline fun swap(first: Int, second: Int) {
             val i = map[first]
             val j = map[second]
 
