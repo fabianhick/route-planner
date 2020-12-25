@@ -280,7 +280,7 @@ class Graph(private val fileName: String) {
         }
     }
 
-    private fun writeResult(result: DijkstraPath?, challengeNodes: List<String>, output: String) {
+    private inline fun writeResult(result: DijkstraPath?, challengeNodes: List<String>, output: String) {
         val value = result!!.distance[challengeNodes[1].toInt()]
         var text = value.toString().removeSuffix(".0")
         if (value == Int.MAX_VALUE)
