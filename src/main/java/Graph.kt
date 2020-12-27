@@ -139,12 +139,11 @@ class Graph(private val fileName: String) {
      * @param target: Another node (default: -1 for one-to-all Dijkstra)
      */
     fun calculateDijkstra(start: Int = 0, target: Int = -1): DijkstraPath {
-        val distance = DistanceStorage(IntArray(numNodes) { Int.MAX_VALUE })
-        val queue = PriorityQueue<DijkstraNode>()
+        val distance = IntArray(numNodes) { Int.MAX_VALUE }
+        val queue = PriorityQueue<DijkstraNode>(15000)
         val previous = IntArray(numNodes) { -1 }
-        distance.data[start] = 0
+        distance[start] = 0
         queue.add(DijkstraNode(start, 0))
-
         if (target < 0) {
             while (queue.isNotEmpty()) {
                 process(queue, distance, previous)
@@ -154,14 +153,13 @@ class Graph(private val fileName: String) {
                 process(queue, distance, previous)
             }
         }
-
-        return DijkstraPath(distance.data, previous, nodes)
+        return DijkstraPath(distance, previous, nodes)
     }
 
     /**
      * Performs a Dijkstra algorithm iteration
      */
-    private inline fun process(queue: PriorityQueue<DijkstraNode>, distance: DistanceStorage, previous: IntArray) {
+    private inline fun process(queue: PriorityQueue<DijkstraNode>, distance: IntArray, previous: IntArray) {
         val u = queue.poll().id
         var index: Int = nodes[u].offset
 
@@ -171,12 +169,10 @@ class Graph(private val fileName: String) {
         while (edges[index].src == u) {
             val edge = edges[index]
             val v = edge.target
-            val alt: Int = distance.data[u] + edge.weight
-            if (alt < distance.data[v]) {
-                distance.data[v] = alt
-
+            val alt: Int = distance[u] + edge.weight
+            if (alt < distance[v]) {
+                distance[v] = alt
                 previous[v] = u
-
                 queue.add(DijkstraNode(v, alt))
             }
             index++
