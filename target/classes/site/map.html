@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"
+            integrity="sha384-ma9ivURrHX5VOB4tNq+UiGNkJoANH4EAJmhxd1mmDq0gKOv88wkKZOfRDOpXynwh"
+            crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+          crossorigin=""/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+          integrity="sha512-UJfAaOlIRtdR+0P6C3KUoTDAxVTuy3lnSXLyLKlHYJlcSU8Juge/mjeaxDNMlw9LgeIotgz5FP8eUQPhX1q10A=="
+          crossorigin="anonymous"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"
+            integrity="sha512-NiWqa2rceHnN3Z5j6mSAvbwwg3tiwVNxiAQaaSMSXnRRDh5C2mk/+sKQRw8qjV1vN4nf8iK2a0b048PnHbyx+Q=="
+            crossorigin="anonymous"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/Vue2Leaflet/1.0.2/vue2-leaflet.min.js"
+            integrity="sha512-1JGjj05HwoWcwmjMZIrJriYYfjmu8gh6pt/WH4EIV0aeaQvyvuKXAX6o55Sur99TLsoafQ0X5g6m4yrg38Ff/w=="
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.0/axios.min.js"
+            integrity="sha512-DZqqY3PiOvTP9HkjIWgjO6ouCbq+dxqWoJZ/Q+zPYNHmlnI2dQnbJ5bxAHpAMw+LXRm4D72EIRXzvcHQtE8/VQ=="
+            crossorigin="anonymous"></script>-->
+    <style type="text/css">
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        app {
+            height: 15vh;
+        }
+    </style>
+
+</head>
+<body>
+<div id="map" class="main" style="height: 85vh"></div>
+<div id="app">
+    <div class="container" style="transform: translateY(5%)">
+        <div class="row">
+            <form class="col s9">
+                <div class="row">
+                    <div class="input-field col s6">
+                        <input type="number" min="0" :max='maxValue' v-model="originNodeId" placeholder="Please enter" id="originNodeId"
+                               v-on:change="getOriginNode" class="validate">
+                        <label for="originNodeId">Origin node ID</label>
+                        <span class="helper-text" data-error="Invalid input" v-if="origin">Latitude: {{ origin.latitude }} Longitude: {{ origin.longitude }}</span>
+                        <span class="helper-text" data-error="Invalid input" v-if="!origin"></span>
+                    </div>
+                    <div class="input-field col s6">
+                        <input type="number" min="0" :max='maxValue' v-model="targetNodeId" placeholder="Please enter" id="targetNodeId"
+                               v-on:change="getTargetNode" class="validate">
+                        <label for="targetNodeId">Target node ID</label>
+                        <span class="helper-text" data-error="Invalid input" v-if="target">Latitude: {{ target.latitude }} Longitude: {{ target.longitude }}</span>
+                        <span class="helper-text" data-error="Invalid input" v-if="!target"></span>
+                    </div>
+                </div>
+            </form>
+            <div class="col s2">
+                <div class="row">
+                    <div class="center-al" style="transform: translateY(30%)">
+                        <a class="waves-effect waves-light btn" v-on:click="calcRoute" v-bind:class="(blocked||originNodeId==null||targetNodeId==null||originNodeId>maxValue||targetNodeId>maxValue||originNodeId<0||targetNodeId<0)?'disabled':''"><i class="material-icons left">map</i>Calculate route</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col s1" v-if="blocked||loading">
+                <div class="valign-wrapper" style="transform: translateY(30%)">
+                    <div class="preloader-wrapper small active">
+                        <div class="spinner-layer spinner-green-only">
+                            <div class="circle-clipper left">
+                                <div class="circle"></div>
+                            </div>
+                            <div class="gap-patch">
+                                <div class="circle"></div>
+                            </div>
+                            <div class="circle-clipper right">
+                                <div class="circle"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            maxValue: Number.MAX_SAFE_INTEGER,
+            originNodeId: null,
+            targetNodeId: null,
+            origin: null,
+            target: null,
+            message: "Test",
+            loading: 0,
+            blocked: false,
+            polyline: null,
+            marker: 0,
+            path: null,
+            markerlayer1: null,
+            markerlayer2: null,
+            mymap: L.map('map').setView([48.745, 9.105], 15)
+        },
+        methods: {
+            getOriginNode: function () {
+                if(app.originNodeId > app.maxValue || app.originNodeId < 0) return;
+                fetch('/position/' + app.originNodeId).then(result => result.json())
+                    .then(json => app.origin = json)
+                    .then(() => {
+                        if (app.markerlayer1 != null) {
+                            app.mymap.removeLayer(app.markerlayer1);
+                        }
+                        let pos = {lat: app.origin["latitude"], lng: app.origin["longitude"]}
+                        app.markerlayer1 = new L.Marker(pos);
+                        app.mymap.addLayer(app.markerlayer1);
+                        app.marker = app.target == null ? 1 : 2;
+                        app.mymap.setView(pos, 13)
+                        app.clearLine()
+                    })
+            },
+            getTargetNode: function () {
+                if(app.targetNodeId > app.maxValue || app.targetNodeId < 0) return;
+                fetch('/position/' + app.targetNodeId).then(result => result.json()).then(json => app.target = json).then(() => {
+                    if (app.markerlayer2 != null) {
+                        app.mymap.removeLayer(app.markerlayer2);
+                    }
+                    let pos = {lat: app.target["latitude"], lng: app.target["longitude"]}
+                    app.markerlayer2 = new L.Marker({lat: app.target["latitude"], lng: app.target["longitude"]});
+                    app.mymap.addLayer(app.markerlayer2);
+                    app.marker = 2;
+                    app.mymap.setView(pos, 13)
+                    app.clearLine()
+                })
+            },
+            calcRoute: function () {
+                app.blocked = true;
+                if (app.polyline != null) {
+                    app.mymap.removeLayer(app.polyline);
+                }
+                fetch(baseUrl + 'route/nodes/' + app.originNodeId + '/' + app.targetNodeId)
+                    .then(request => request.json())
+                    .then(json => {
+                        app.path = json;
+                        app.polyline = L.polyline(json, {color: 'red'}).addTo(app.mymap);
+                        app.mymap.fitBounds(app.polyline.getBounds());
+                        app.blocked = false;
+                        marker = 2;
+                    });
+            },
+            clearLine: function () {
+                if (app.polyline != null) {
+                    app.mymap.removeLayer(app.polyline);
+                }
+            }
+        }
+    })
+
+    const fetching = window.fetch;
+    window.fetch = function (path) {
+        app.loading++
+        return fetching(path).then((result) => {
+            app.loading--
+            return result
+        })
+    }
+fetch('/nodes/size').then(result => result.json()).then(json => app.maxValue = json).then(() => console.log("Number of nodes: " + app.maxValue))
+    //L.tileLayer('https://tiles.fmi.uni-stuttgart.de/{z}/{x}/{y}.png', {
+    L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+            'Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>',
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1
+    }).addTo(app.mymap);
+    let blocked, step1_blocked = false;
+    var marker = 0;
+    var markerlayer1, markerlayer2, polyline;
+    const baseUrl = "/"
+    let origin, target;
+    let startNode, targetNode;
+
+    function onMapClick(e) {
+        if (!app.blocked) {
+            // reset
+            if (app.marker == 2) {
+                app.mymap.removeLayer(app.markerlayer1);
+                app.mymap.removeLayer(app.markerlayer2);
+                app.mymap.removeLayer(app.polyline);
+                app.originNodeId = null;
+                app.targetNodeId = null;
+
+
+                app.marker = 0;
+            }
+            if (app.marker == 0) {
+                app.markerlayer1 = new L.Marker(e.latlng);
+                app.mymap.addLayer(app.markerlayer1);
+                app.marker++
+                origin = e.latlng;
+                step1_blocked = true;
+                fetch(baseUrl + 'node/' + e.latlng["lat"] + '/' + e.latlng["lng"])
+                    .then(response => response.json())
+                    .then(json => {
+                        startNode = json;
+                        app.originNodeId = startNode["id"]
+                        app.origin = startNode["position"]
+                        console.log(startNode);
+                        step1_blocked = false;
+                    });
+            } else if (app.marker == 1) {
+                app.markerlayer2 = new L.Marker(e.latlng);
+                app.mymap.addLayer(app.markerlayer2);
+                target = e.latlng;
+                app.blocked = true;
+                app.targetNodeId = null
+                app.target = null
+                fetch(baseUrl + 'node/' + e.latlng["lat"] + '/' + e.latlng["lng"])
+                    .then(response => response.json())
+                    .then(json => {
+                        targetNode = json;
+                        app.targetNodeId = targetNode["id"]
+                        app.target = targetNode["position"]
+                    }).then(() => calculateRoute());
+                app.marker++;
+            }
+        }
+
+
+    }
+
+    async function calculateRoute() {
+        while (step1_blocked) {
+        }
+        fetch(baseUrl + 'route/nodes/' + app.originNodeId + '/' + app.targetNodeId)
+            .then(request => request.json())
+            .then(json => {
+                app.path = json;
+                app.polyline = L.polyline(json, {color: 'red'}).addTo(app.mymap);
+                app.mymap.fitBounds(app.polyline.getBounds());
+                app.blocked = false;
+            });
+    }
+
+    app.mymap.on('click', onMapClick);
+</script>
+</body>
+</html>
