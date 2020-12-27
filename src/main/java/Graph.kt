@@ -121,6 +121,8 @@ class Graph(private val fileName: String) {
 
     // shared data class for comparator and dijkstra
     data class DistanceStorage(var data: IntArray)
+
+    // Node to be used by PriorityQueue
     data class DijkstraNode(val id: Int, var distance: Int) : Comparable<DijkstraNode> {
         override fun compareTo(other: DijkstraNode): Int {
             return if (this.distance == other.distance) {
@@ -142,6 +144,7 @@ class Graph(private val fileName: String) {
         val distance = IntArray(numNodes) { Int.MAX_VALUE }
         val queue = PriorityQueue<DijkstraNode>(12500)
         val previous = IntArray(numNodes) { -1 }
+
         distance[start] = 0
         queue.add(DijkstraNode(start, 0))
         if (target < 0) {
@@ -160,7 +163,12 @@ class Graph(private val fileName: String) {
      * Performs a Dijkstra algorithm iteration
      */
     private inline fun process(queue: PriorityQueue<DijkstraNode>, distance: IntArray, previous: IntArray) {
-        val u = queue.poll().id
+        val uObj = queue.poll()
+        val u = uObj.id
+        // skip when encountering old node
+        if (uObj.distance != distance[u])
+            return
+
         var index: Int = nodes[u].offset
 
         // skip if node doesn't have any edges
