@@ -149,7 +149,7 @@ class Graph(private val fileName: String) {
                 process(queue, distance, previous)
             }
         } else {
-            while (queue.peek().id != target && queue.isNotEmpty()) {
+            while (queue.isNotEmpty() && queue.peek().id != target) {
                 process(queue, distance, previous)
             }
         }
