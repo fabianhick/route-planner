@@ -302,12 +302,11 @@ class Graph(private val fileName: String) {
 
         private inline fun swap(first: Int, second: Int) {
             val i = map[first]
-            val j = map[second]
 
-            heap[j] = first
-            heap[i] = second
+            heap[map[second]] = first
+            heap[map[first]] = second
 
-            map[first] = j
+            map[first] = map[second]
             map[second] = i
         }
 
