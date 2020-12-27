@@ -121,6 +121,15 @@ class Graph(private val fileName: String) {
 
     // shared data class for comparator and dijkstra
     data class DistanceStorage(var data: IntArray)
+    data class DijkstraNode(val id: Int, var distance: Int) : Comparable<DijkstraNode> {
+        override fun compareTo(other: DijkstraNode): Int {
+            return if (this.distance == other.distance) {
+                id.compareTo(other.id)
+            } else {
+                distance.compareTo(other.distance)
+            }
+        }
+    }
 
     /**
      * Calculates the DijkstraPath from a given start node to a target node.
@@ -131,17 +140,17 @@ class Graph(private val fileName: String) {
      */
     fun calculateDijkstra(start: Int = 0, target: Int = -1): DijkstraPath {
         val distance = DistanceStorage(IntArray(numNodes) { Int.MAX_VALUE })
-        val queue = Heap(numNodes, NodeComparator(distance))
+        val queue = PriorityQueue<DijkstraNode>()
         val previous = IntArray(numNodes) { -1 }
         distance.data[start] = 0
-        queue.insert(start)
+        queue.add(DijkstraNode(start, 0))
 
         if (target < 0) {
             while (queue.isNotEmpty()) {
                 process(queue, distance, previous)
             }
         } else {
-            while (queue.peek() != target && queue.isNotEmpty()) {
+            while (queue.peek().id != target && queue.isNotEmpty()) {
                 process(queue, distance, previous)
             }
         }
@@ -152,8 +161,8 @@ class Graph(private val fileName: String) {
     /**
      * Performs a Dijkstra algorithm iteration
      */
-    private inline fun process(queue: Heap, distance: DistanceStorage, previous: IntArray) {
-        val u = queue.poll()
+    private inline fun process(queue: PriorityQueue<DijkstraNode>, distance: DistanceStorage, previous: IntArray) {
+        val u = queue.poll().id
         var index: Int = nodes[u].offset
 
         // Continue if node doesn't have any edges
@@ -168,11 +177,7 @@ class Graph(private val fileName: String) {
 
                 previous[v] = u
 
-                if (!queue.contains(v)) {
-                    queue.insert(v)
-                } else {
-                    queue.decreaseKey(v)
-                }
+                queue.add(DijkstraNode(v, alt))
             }
             index++
             if (index > edges.size - 1) {
@@ -302,12 +307,11 @@ class Graph(private val fileName: String) {
 
         private inline fun swap(first: Int, second: Int) {
             val i = map[first]
-            val j = map[second]
 
-            heap[j] = first
+            heap[map[second]] = first
             heap[i] = second
 
-            map[first] = j
+            map[first] = map[second]
             map[second] = i
         }
 
