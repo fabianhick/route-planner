@@ -163,7 +163,7 @@ class Graph(private val fileName: String) {
         val u = queue.poll().id
         var index: Int = nodes[u].offset
 
-        // Continue if node doesn't have any edges
+        // skip if node doesn't have any edges
         if (index == Int.MIN_VALUE)
             return
         while (edges[index].src == u) {
@@ -255,7 +255,7 @@ class Graph(private val fileName: String) {
                     val time = measureTimeMillis {
                         result = calculateDijkstra(challengeNodes[0].toInt())
                     }
-                    println("Finished calculating dijkstra for node #$currentNode after ${time / 1000} seconds.")
+                    println("Finished calculating dijkstra for node #$currentNode after ${time / 1000f} seconds.")
                 }
                 writeResult(result, challengeNodes, output)
             }
@@ -272,11 +272,11 @@ class Graph(private val fileName: String) {
                     result = calculateDijkstra(challengeNodes[0].toInt(), challengeNodes[1].toInt())
                 }
                 writeResult(result, challengeNodes, output)
-                println("Finished calculating dijkstra for node #$currentNode after ${time / 1000} seconds.")
+                println("Finished calculating dijkstra for node #$currentNode after ${time / 1000f} seconds.")
                 counter++
                 gTime += time
             }
-            println("Finished calculating challenge. Average time for each line: ${(gTime / 1000) / counter}s")
+            println("Finished calculating challenge. Average time for each line: ${(gTime / 1000f) / counter}s")
 
         }
     }
