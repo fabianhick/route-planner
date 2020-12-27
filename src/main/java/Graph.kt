@@ -140,7 +140,7 @@ class Graph(private val fileName: String) {
      */
     fun calculateDijkstra(start: Int = 0, target: Int = -1): DijkstraPath {
         val distance = IntArray(numNodes) { Int.MAX_VALUE }
-        val queue = PriorityQueue<DijkstraNode>(15000)
+        val queue = PriorityQueue<DijkstraNode>(12500)
         val previous = IntArray(numNodes) { -1 }
         distance[start] = 0
         queue.add(DijkstraNode(start, 0))
