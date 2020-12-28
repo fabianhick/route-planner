@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
-
 import com.google.gson.Gson
 import io.ktor.application.*
 import io.ktor.http.content.*
@@ -13,10 +8,6 @@ import io.ktor.server.netty.*
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
 
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
 class Web : Runnable {
     override fun run() {
         val server = embeddedServer(Netty, port = 8000) {

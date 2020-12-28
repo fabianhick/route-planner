@@ -1,14 +1,5 @@
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
-
 import kotlin.system.measureTimeMillis
 
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
 var time: Long = 0
 
 object Global {

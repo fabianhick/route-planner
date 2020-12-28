@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
-
 import java.io.File
 import java.util.*
 import kotlin.Comparator
