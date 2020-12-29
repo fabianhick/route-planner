@@ -239,7 +239,8 @@ class Graph(private val fileName: String) {
     fun findNearestNode(target: Position): Node {
         val nodes: List<Node> = nodes.toList()
         return nodes.parallelStream()
-            .min(Comparator.comparing { a: Node -> a.position.distance(target) }).unwrap()!!
+            .min(Comparator.comparing { a: Node -> a.position.distance(target) }).unwrap()
+            ?: throw IllegalStateException("Graph shouldn't be empty")
         //return nodes.minBy { it.position.distance(target) } ?: throw IllegalStateException("Graph shouldn't be empty") //TODO parallel
     }
 
