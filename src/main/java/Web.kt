@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
-
 import com.google.gson.Gson
 import io.ktor.application.*
 import io.ktor.http.content.*
@@ -13,10 +8,6 @@ import io.ktor.server.netty.*
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
 
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
 class Web : Runnable {
     override fun run() {
         val server = embeddedServer(Netty, port = 8000) {
@@ -41,7 +32,7 @@ class Web : Runnable {
                             start = Global.graph.findNearestNode(origin).id
                             poi = Global.graph.findNearestNode(target).id
                         }
-                        println("Finished calculating nearest nodes in ${time / 1000}s")
+                        println("Finished calculating nearest nodes in ${time / 1000f}s")
                         println("Starting to calculate route from #$start to #$poi...")
                         try {
                             val paths: Graph.DijkstraPath = Global.graph.calculateDijkstra(start, poi)
@@ -55,7 +46,7 @@ class Web : Runnable {
 
                         }
                     }
-                    println("Calculating request took ${time/1000} s.")
+                    println("Calculating request took ${time / 1000f} s.")
                 }
                 // Get route
                 get("/route/nodes/{origin}/{target}") {
@@ -74,7 +65,7 @@ class Web : Runnable {
 
                         }
                     }
-                    println("Calculating request took ${time/1000} s.")
+                    println("Calculating request took ${time / 1000f} s.")
                 }
 
                 get("/node/{lat}/{long}") {
@@ -85,7 +76,7 @@ class Web : Runnable {
                         val node = Global.graph.findNearestNode(point)
                         call.respondText(Gson().toJson(node).toString())
                     }
-                    println("Calculating request took ${time/1000} s.")
+                    println("Calculating request took ${time / 1000f} s.")
                 }
 
                 get("/position/{node}") {
@@ -95,7 +86,7 @@ class Web : Runnable {
                         val point = Global.graph.getNode(node)
                         call.respondText(Gson().toJson(point.position).toString())
                     }
-                    println("Calculating request took ${time/1000} s.")
+                    println("Calculating request took ${time / 1000f} s.")
                 }
                 get("/nodes/size") {
                     val time = measureTimeMillis {
@@ -103,11 +94,11 @@ class Web : Runnable {
                         val size = Global.graph.nodes.size
                         call.respondText(Gson().toJson(size).toString())
                     }
-                    println("Calculating request took ${time/1000} s.")
+                    println("Calculating request took ${time / 1000f} s.")
                 }
 
                 static {
-                    resource("/", "site/map.html")
+                    resource("/", "map.html")
                 }
             }
         }

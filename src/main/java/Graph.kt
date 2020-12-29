@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
-
 import java.io.File
 import java.util.*
 import kotlin.Comparator
@@ -122,6 +117,17 @@ class Graph(private val fileName: String) {
     // shared data class for comparator and dijkstra
     data class DistanceStorage(var data: IntArray)
 
+    // Node to be used by PriorityQueue
+    data class DijkstraNode(val id: Int, var distance: Int) : Comparable<DijkstraNode> {
+        override fun compareTo(other: DijkstraNode): Int {
+            return if (this.distance == other.distance) {
+                id.compareTo(other.id)
+            } else {
+                distance.compareTo(other.distance)
+            }
+        }
+    }
+
     /**
      * Calculates the DijkstraPath from a given start node to a target node.
      * If no target node is provided, this function will calculate a one-to-all DijkstraPath.
@@ -130,49 +136,47 @@ class Graph(private val fileName: String) {
      * @param target: Another node (default: -1 for one-to-all Dijkstra)
      */
     fun calculateDijkstra(start: Int = 0, target: Int = -1): DijkstraPath {
-        val distance = DistanceStorage(IntArray(numNodes) { Int.MAX_VALUE })
-        val queue = Heap(numNodes, NodeComparator(distance))
+        val distance = IntArray(numNodes) { Int.MAX_VALUE }
+        val queue = PriorityQueue<DijkstraNode>(12500)
         val previous = IntArray(numNodes) { -1 }
-        distance.data[start] = 0
-        queue.insert(start)
 
+        distance[start] = 0
+        queue.add(DijkstraNode(start, 0))
         if (target < 0) {
             while (queue.isNotEmpty()) {
                 process(queue, distance, previous)
             }
         } else {
-            while (queue.peek() != target && queue.isNotEmpty()) {
+            while (queue.isNotEmpty() && queue.peek().id != target) {
                 process(queue, distance, previous)
             }
         }
-
-        return DijkstraPath(distance.data, previous, nodes)
+        return DijkstraPath(distance, previous, nodes)
     }
 
     /**
      * Performs a Dijkstra algorithm iteration
      */
-    private inline fun process(queue: Heap, distance: DistanceStorage, previous: IntArray) {
-        val u = queue.poll()
+    private inline fun process(queue: PriorityQueue<DijkstraNode>, distance: IntArray, previous: IntArray) {
+        val uObj = queue.poll()
+        val u = uObj.id
+        // skip when encountering old node
+        if (uObj.distance != distance[u])
+            return
+
         var index: Int = nodes[u].offset
 
-        // Continue if node doesn't have any edges
+        // skip if node doesn't have any edges
         if (index == Int.MIN_VALUE)
             return
         while (edges[index].src == u) {
             val edge = edges[index]
             val v = edge.target
-            val alt: Int = distance.data[u] + edge.weight
-            if (alt < distance.data[v]) {
-                distance.data[v] = alt
-
+            val alt: Int = distance[u] + edge.weight
+            if (alt < distance[v]) {
+                distance[v] = alt
                 previous[v] = u
-
-                if (!queue.contains(v)) {
-                    queue.insert(v)
-                } else {
-                    queue.decreaseKey(v)
-                }
+                queue.add(DijkstraNode(v, alt))
             }
             index++
             if (index > edges.size - 1) {
@@ -254,7 +258,7 @@ class Graph(private val fileName: String) {
                     val time = measureTimeMillis {
                         result = calculateDijkstra(challengeNodes[0].toInt())
                     }
-                    println("Finished calculating dijkstra for node #$currentNode after ${time / 1000} seconds.")
+                    println("Finished calculating dijkstra for node #$currentNode after ${time / 1000f} seconds.")
                 }
                 writeResult(result, challengeNodes, output)
             }
@@ -271,11 +275,11 @@ class Graph(private val fileName: String) {
                     result = calculateDijkstra(challengeNodes[0].toInt(), challengeNodes[1].toInt())
                 }
                 writeResult(result, challengeNodes, output)
-                println("Finished calculating dijkstra for node #$currentNode after ${time / 1000} seconds.")
+                println("Finished calculating dijkstra for node #$currentNode after ${time / 1000f} seconds.")
                 counter++
                 gTime += time
             }
-            println("Finished calculating challenge. Average time for each line: ${(gTime / 1000) / counter}s")
+            println("Finished calculating challenge. Average time for each line: ${(gTime / 1000f) / counter}s")
 
         }
     }
@@ -287,8 +291,8 @@ class Graph(private val fileName: String) {
             text = "-1"
         File(output).appendText(text + "\n")
     }
-
-
+// Isn't being used as it takes at least 24s on the server which is way slower compared to using Java's PriorityQueue with duplicates.
+/*
     data class Heap(val size: Int, val comparator: NodeComparator) {
         private var currentSize: Int = 0
         private val heap: IntArray = IntArray(size + 1)
@@ -302,12 +306,11 @@ class Graph(private val fileName: String) {
 
         private inline fun swap(first: Int, second: Int) {
             val i = map[first]
-            val j = map[second]
 
-            heap[j] = first
+            heap[map[second]] = first
             heap[i] = second
 
-            map[first] = j
+            map[first] = map[second]
             map[second] = i
         }
 
@@ -372,6 +375,6 @@ class Graph(private val fileName: String) {
             }
         }
     }
-
+*/
 }
 

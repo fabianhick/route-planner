@@ -1,14 +1,5 @@
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
-
 import kotlin.system.measureTimeMillis
 
-/*
- * Copyright (c) 2020.
- * Fabian Hick
- */
 var time: Long = 0
 
 object Global {
@@ -24,12 +15,12 @@ fun main(args: Array<String>) {
 
 fun menu() {
     println("Everything finished!")
-    println("Took ${time / 1000} seconds.")
+    println("Took ${time / 1000f} seconds.")
     while (true) {
         println("Menu: ")
         println("1. Using challenge files (one-to-all)")
         println("2. Using challenge files (optimized)")
-        println("3. One-to-all (slow Dijkstra)")
+        println("3. One-to-all")
         println("4. Nearest node of position")
         println("5. Inspect a node")
         println("6. Start webserver")
@@ -80,7 +71,7 @@ fun oneToAll() {
         path = Global.graph.calculateDijkstra(source)
     }
     val distance = path!!.distance
-    println("Calculated one-to-all dijkstra in ${time / 1000} seconds.")
+    println("Calculated one-to-all dijkstra in ${time / 1000f} seconds.")
     println("Calculated ${distance.size} entries of ${Global.graph.numNodes}")
     while (true) {
         print("To which node would you like to know the distance? ")
@@ -110,7 +101,7 @@ fun testFiles(optimized: Boolean = false) {
     val time = measureTimeMillis {
         Global.graph.fileChallenge(source, target, optimized)
     }
-    println("Processing the challenge took ${time / 1000} seconds in total.")
+    println("Processing the challenge took ${time / 1000f} seconds in total.")
 }
 
 fun startServer() {
