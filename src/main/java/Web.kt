@@ -98,7 +98,7 @@ class Web : Runnable {
                 }
 
                 static {
-                    resource("/", "site/map.html")
+                    resource("/", "map.html")
                 }
             }
         }
