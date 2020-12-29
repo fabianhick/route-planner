@@ -9,11 +9,11 @@
 
 
     <properties>
-        <java.version>14</java.version>
+        <java.version>15</java.version>
         <kotlin.version>1.4.21</kotlin.version>
         <ktor.version>1.3.0</ktor.version>
-        <maven.compiler.source>14</maven.compiler.source>
-        <maven.compiler.target>14</maven.compiler.target>
+        <maven.compiler.source>15</maven.compiler.source>
+        <maven.compiler.target>15</maven.compiler.target>
         <main.class>MainKt</main.class>
     </properties>
 
@@ -84,12 +84,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <jvmTarget>${maven.compiler.target}</jvmTarget>
-                    <args>
-                        <arg>-Xcoroutines=enable</arg>
-                    </args>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
