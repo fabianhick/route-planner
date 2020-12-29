@@ -292,8 +292,8 @@ class Graph(private val fileName: String) {
             text = "-1"
         File(output).appendText(text + "\n")
     }
-
-
+// Isn't being used as it takes at least 24s on the server which is way slower compared to using Java's PriorityQueue with duplicates.
+/*
     data class Heap(val size: Int, val comparator: NodeComparator) {
         private var currentSize: Int = 0
         private val heap: IntArray = IntArray(size + 1)
@@ -376,6 +376,6 @@ class Graph(private val fileName: String) {
             }
         }
     }
-
+*/
 }
 
